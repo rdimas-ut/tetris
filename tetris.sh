@@ -31,7 +31,7 @@ lines=0
 level=0
 
 # Shape
-current_shape=(4 5 6 18)
+current_shape=(4 5 18 6)
 current_shape_color=$PURPLE
 
 # Shapes
@@ -47,20 +47,6 @@ frame_buffer=""
 # printf '\n'
 # printf '%s' "${play_area[@]}"
 # printf "${play_area[10]}"
-
-
-# escape_char=$(printf "\u1b")
-# while true
-# do 
-# read -srn1 cmd
-
-# if [ $cmd == $escape_char ]; then
-#   read -srn2 cmd
-# elif [ $cmd == 'W' ] || [ $cmd == 'A' ] || [ $cmd == 'S' ] || [ $cmd == 'D' ]; then
-#   printf ""
-# elif [ $cmd == 'w' ] || [ $cmd == 'a' ] || [ $cmd == 's' ] || [ $cmd == 'd' ]; then
-#   printf ""
-# fi
 
 update_frame() {
   while true; do
@@ -78,48 +64,52 @@ update_frame() {
 
 input() {
   local escape_char=$(printf "\u1b")
-  local update_play_area=("${play_area[@]}")
   while true; do
     read -s -r -n 1 cmd
 
     if [ "$cmd" == $escape_char ]; then
       read -srn2 cmd
+      if [ "$cmd" == '[A' ]; then
+        printf "[A"
+      elif [ "$cmd" == '[B' ]; then
+        printf "[B"
+      elif [ "$cmd" == '[D' ]; then
+        printf "[D"
+      elif [ "$cmd" == '[C' ]; then
+        printf "[C"
+      fi
     elif [ "$cmd" == 'W' ] || [ "$cmd" == 'A' ] || [ "$cmd" == 'S' ] || [ "$cmd" == 'D' ]; then
-      printf ""
+      printf $cmd
     elif [ "$cmd" == 'w' ] || [ "$cmd" == 'a' ] || [ "$cmd" == 's' ] || [ "$cmd" == 'd' ]; then
-      cmd_down
-      printf "The down keays has been presse"
+      printf $cmd
     fi
-
-    update_play_area=("${play_area[@]}")
-    for i in ${current_shape[@]}; do
-      update_play_area[$i]=$'\033[0;36m\xE2\x96\x88\xE2\x96\x88\033[0m'
-    done    
-
-    printf '\n'
-    printf '%s' "${update_play_area[@]}"
-    printf '\n'
   done
 }
 
 screen() {
-  local escape_char=$(printf "\u1b")
   local update_play_area=("${play_area[@]}")
   while true; do
     read -s -r -n 1 cmd
 
-    if [ "$cmd" == $escape_char ]; then
-      read -srn2 cmd
-    elif [ "$cmd" == 'W' ] || [ "$cmd" == 'A' ] || [ "$cmd" == 'S' ] || [ "$cmd" == 'D' ]; then
-      printf cmd
-    elif [ "$cmd" == 'w' ] || [ "$cmd" == 'a' ] || [ "$cmd" == 's' ] || [ "$cmd" == 'd' ]; then
-      cmd_down
-    fi
+    case $cmd in
+      'A') cmd_up;;
+      'D') cmd_left;;
+      'B') cmd_down;;
+      'C') cmd_right;;
+      'W') cmd_up;;
+      'A') cmd_left;;
+      'S') cmd_down;;
+      'D') cmd_right;;
+      'w') cmd_up;;
+      'a') cmd_left;;
+      's') cmd_down;;
+      'd') cmd_right;;
+    esac
 
     update_play_area=("${play_area[@]}")
     for i in ${current_shape[@]}; do
       update_play_area[$i]=$'\033[0;36m\xE2\x96\x88\xE2\x96\x88\033[0m'
-    done    
+    done
 
     printf '\n'
     printf '%s' "${update_play_area[@]}"
@@ -129,41 +119,36 @@ screen() {
 
 cmd_down() {
   for i in "${!current_shape[@]}"; do
-    current_shape[$i]=$((13 + current_shape[$i]))
+    current_shape[$i]=$((current_shape[$i] + 13))
+  done
+}
+
+cmd_left() {
+  local a=$current_shape[0]
+  if (((${current_shape[0]} - 1 ) % 13 != 0)); then 
+    for i in "${!current_shape[@]}"; do
+      current_shape[$i]=$((current_shape[$i] - 1))
+    done
+  fi
+}
+
+cmd_right() {
+  if (((${current_shape[3]} + 1 ) % 12 != 0)); then
+    printf ${current_shape[3]}
+    for i in "${!current_shape[@]}"; do
+      current_shape[$i]=$((current_shape[$i] + 1))
+    done
+  fi
+}
+
+cmd_up() {
+  for i in "${!current_shape[@]}"; do
+    current_shape[$i]=$((current_shape[$i] - 13))
   done
 }
 
 ticker() {
     while true; do printf 's'; sleep 1; done
 }
- 
-# case $cmd in
-#   '[A') echo $cmd;;
-#   '[B') echo $cmd;;
-#   '[D') echo $cmd;;
-#   '[C') echo $cmd;;
-#   # '^[') echo $cmd;;
-#   'W') echo $cmd;;
-#   'A') echo $cmd;;
-#   'S') echo $cmd;;
-#   'D') echo $cmd;;
-#   'w') echo $cmd;;
-#   'a') echo $cmd;;
-#   's') echo $cmd;;
-#   'd') echo $cmd;;
-# esac
-#done
 
-
-
-# (
-#   ticker &
-#   input
-# )|(
-#   update_frame
-# )
-ticker|input
-
-# while true;do
-#   update_frame
-# done
+(ticker & input)|screen
